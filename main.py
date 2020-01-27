@@ -228,6 +228,6 @@ if __name__ == '__main__':
 
     >Execute: python3.7 predict.py -i path_to:nn_representations.csv -m path_to:WindDenseNN.h5 -a path_to:actual.csv
     """
-    temp = InstaBOTGram("losetelo@gmail.com", "denexwkwdiko", "F")
+    temp = InstaBOTGram(, , "F")
     #temp.get_unfollowers()
     temp.download_user_images("dimitris_soumis")
