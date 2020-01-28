@@ -9,5 +9,5 @@ These activities:
 5.Exit InstaBOTGram
 
 It is created by using Selenium framework. 
-For this app to wokr one should download geckodriver matching your system from here https://github.com/mozilla/geckodriver/releases 
+For this app to work one should download geckodriver matching your system from here https://github.com/mozilla/geckodriver/releases 
 and put the .exe in PATH.
