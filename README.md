@@ -11,6 +11,6 @@ These activities:
 
 4.Spam a user with likes.
 
-It is created by using Selenium framework. 
+It is created by using Selenium framework and XPaths. 
 For this app to work one should download geckodriver matching your system from here https://github.com/mozilla/geckodriver/releases 
 and put the .exe in directory where bot.py is located. (Tested with Python 3.7, Windows 10)
