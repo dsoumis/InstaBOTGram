@@ -13,4 +13,6 @@ These activities:
 
 It is created by using Selenium framework and XPaths. 
 For this app to work one should download geckodriver matching your system from here https://github.com/mozilla/geckodriver/releases 
-and put the .exe in directory where bot.py is located. (Tested with Python 3.7, Windows 10)
+and put the .exe in directory where bot.py is located. (Tested with Python 3.7, Windows 10, Firefox)
+
+One should download chromedriver for Google Chrome browser. https://chromedriver.chromium.org/
