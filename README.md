@@ -16,3 +16,5 @@ For this app to work one should download geckodriver matching your system from h
 and put the .exe in directory where bot.py is located. (Tested with Python 3.7, Windows 10, Firefox)
 
 One should download chromedriver for Google Chrome browser. https://chromedriver.chromium.org/
+
+One can download the distribution of this app and use it as a .exe programm from here: https://drive.google.com/file/d/1Eh5lQqVd54P27Tn2kYBpYOnGLdl_Q_Yf/view?usp=sharing
