@@ -4,6 +4,7 @@ from _socket import timeout
 from time import sleep
 
 from selenium import webdriver
+from selenium.common import exceptions
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.ui import WebDriverWait
@@ -16,10 +17,15 @@ class InstaBOTGram:
         # If more than 10 seconds and no response throws timeout exception
         try:
             # Finds and clicks Log In with Facebook
-            WebDriverWait(self.driver, 10).until(
-                expected_conditions.presence_of_element_located((By.XPATH, facebook_login_element_xpath))
-            ).click()
-
+            try:
+                WebDriverWait(self.driver, 10).until(
+                    expected_conditions.presence_of_element_located((By.XPATH, facebook_login_element_xpath))
+                ).click()
+            except exceptions.TimeoutException:
+                WebDriverWait(self.driver, 10).until(
+                    expected_conditions.presence_of_element_located(
+                        (By.XPATH, "/html/body/div[1]/section/main/article/div[2]/div[1]/div/form/div[6]/button/span[2]"
+                         ))).click()
             try:
                 # Writes username in field
                 WebDriverWait(self.driver, 10).until(
@@ -147,7 +153,7 @@ class InstaBOTGram:
                 expected_conditions.presence_of_element_located(
                     (By.XPATH, "/html/body/div[4]/div/div[1]/div/div[2]/button"))
             )
-        except Exception:
+        except exceptions.TimeoutException:
             WebDriverWait(self.driver, 10).until(
                 expected_conditions.presence_of_element_located(
                     (By.XPATH, "/html/body/div[3]/div/div[1]/div/div[2]/button"))
@@ -178,6 +184,7 @@ class InstaBOTGram:
 
     def get_unfollowers(self):
         try:
+            self.driver.get("https://www.instagram.com")
             # Click profile icon left of username
             WebDriverWait(self.driver, 10).until(
                 expected_conditions.presence_of_element_located(
@@ -224,14 +231,19 @@ class InstaBOTGram:
         while last_height != height:
             last_height = height
             sleep(1)
-            height = self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);"
-                                                "return document.body.scrollHeight;")
-
-            img_srcs.extend(
-                [img.get_attribute('src') for img in self.driver.find_elements_by_class_name('FFVAD')])  # scrape srcs
+            height = self.driver.execute_script("window.scrollTo(0, document.documentElement.scrollHeight);"
+                                                "return document.documentElement.scrollHeight;")
+            try:
+                img_srcs.extend(
+                    [img.get_attribute('src') for img in
+                     self.driver.find_elements_by_class_name('FFVAD')])  # scrape srcs
+            except exceptions.StaleElementReferenceException:
+                img_srcs.extend(
+                    [img.get_attribute('src') for img in
+                     self.driver.find_elements_by_class_name('FFVAD')])  # scrape srcs
 
         img_srcs = list(set(img_srcs))  # clean up duplicates
-
+        print("telos {}".format(len(img_srcs)))
         for idx, src in enumerate(img_srcs):
             # Creates a folder named after a user to to store the image, then downloads the image to the folder.
 
@@ -280,7 +292,7 @@ class InstaBOTGram:
             )
 
     def like_latest_posts(self, user, number_of_posts):
-
+        number_of_posts = int(number_of_posts)
         # Likes a number of a users latest posts, specified by number_of_posts.
 
         # Navigate to user's page
@@ -291,32 +303,50 @@ class InstaBOTGram:
                 expected_conditions.presence_of_element_located(
                     (By.XPATH, "//h1[contains(text(), '{}')]".format(user)))
             )
+
+            total_posts = WebDriverWait(self.driver, 10).until(
+                expected_conditions.presence_of_element_located(
+                    (By.XPATH, "/html/body/div[1]/section/main/div/header/section/ul/li[1]/span/span"))
+            )
+            total_posts = total_posts.text
+            total_posts = int(total_posts)
             images = []
             last_height = 0
             height = 1
             while last_height != height:
                 last_height = height
                 sleep(1)
-                height = self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);"
-                                                    "return document.body.scrollHeight;")
-
-                images.extend(self.driver.find_elements_by_class_name('_9AhH0'))
-            images = list(set(images))  # clean up duplicates
-
-            unique_photos = len(images)
-            print("{} len is ".format(unique_photos))
-            if unique_photos < number_of_posts:
-                number_of_posts = unique_photos
-            for image in images[:number_of_posts]:
-                print(image)
-                image.click()
+                height = self.driver.execute_script("window.scrollTo(0, document.documentElement.scrollHeight);"
+                                                    "return document.documentElement.scrollHeight;")
                 try:
-                    # Click like button
-                    WebDriverWait(self.driver, 1).until(
-                        expected_conditions.presence_of_element_located(
-                            (By.XPATH, "//span[contains(@class, 'fr66n')]//*[@fill='#262626']"))
-                    ).click()
-                except Exception:
+                    images.extend(self.driver.find_elements_by_class_name('_9AhH0'))
+                except exceptions.StaleElementReferenceException:
+                    images.extend(self.driver.find_elements_by_class_name('_9AhH0'))
+                for idx, image in enumerate(images):
+                    if idx == number_of_posts or total_posts == 0:
+                        return
+                    total_posts = total_posts - 1
+                    try:
+                        image.click()
+                    except exceptions.StaleElementReferenceException:
+                        image.click()
+                    try:
+                        # Click like button
+                        WebDriverWait(self.driver, 3).until(
+                            expected_conditions.presence_of_element_located(
+                                (By.XPATH, "//span[contains(@class, 'fr66n')]//*[@fill='#262626']"))
+                        ).click()
+                    except Exception:
+                        number_of_posts = number_of_posts + 1
+                        # Click close button
+                        self.driver.find_elements_by_class_name('ckWGn')[0].click()
+                        # Check that we are on user's page
+                        WebDriverWait(self.driver, 10).until(
+                            expected_conditions.presence_of_element_located(
+                                (By.XPATH, "//h1[contains(text(), '{}')]".format(user)))
+                        )
+                        continue
+
                     # Click close button
                     self.driver.find_elements_by_class_name('ckWGn')[0].click()
                     # Check that we are on user's page
@@ -324,17 +354,10 @@ class InstaBOTGram:
                         expected_conditions.presence_of_element_located(
                             (By.XPATH, "//h1[contains(text(), '{}')]".format(user)))
                     )
-                    continue
-
-                # Click close button
-                self.driver.find_elements_by_class_name('ckWGn')[0].click()
-                # Check that we are on user's page
-                WebDriverWait(self.driver, 10).until(
-                    expected_conditions.presence_of_element_located(
-                        (By.XPATH, "//h1[contains(text(), '{}')]".format(user)))
-                )
-        except Exception:
-            print(Exception)
+                images = []
+            # images = list(set(images))  # clean up duplicates
+        except exceptions.TimeoutException:
+            print("timeoutsmt")
 
     def terminate(self):
         self.driver.quit()
@@ -391,17 +414,17 @@ if __name__ == '__main__':
     print("Press a number from the menu and 'ENTER' for an action to take place.")
     while 1:
         print("MENU:\n"
-              "1.See who's not following you back."
-              "2.Download all images of a user."  # TODO: Test what happens if profile is locked
-              "3.Get NEW Followers."
-              "4.Spam a user with likes."
-              "5.Exit InstaBOTGram")
+              "1.See who's not following you back.\n"
+              "2.Download all images of a user.\n"
+              "3.Get NEW Followers.\n"
+              "4.Spam a user with likes.\n"
+              "5.Exit InstaBOTGram\n")
         action = input('Give a number from above and press ENTER: ')
         while 1:
-            if action == 1 or action == 2 or action == 3 or action == 4 or action == 5:
+            if action == '1' or action == '2' or action == '3' or action == '4' or action == '5':
                 break
             action = input('No such number. Give a number from the MENU: ')
-        if action == 1:
+        if action == '1':
             os.system('cls' if os.name == 'nt' else 'clear')  # Clear terminal
             not_following_backo = temp.get_unfollowers()
             print("Not following you back: {}".format(not_following_backo))
@@ -415,12 +438,12 @@ if __name__ == '__main__':
                 for usern in not_following_backo:
                     temp.unfollow_user(usern)
                 print('You successfully unfollowed those users.')
-        elif action == 2:
+        elif action == '2':
             os.system('cls' if os.name == 'nt' else 'clear')  # Clear terminal
             print('Give the username of the user that you want to download pictures from.')
             user2 = input('Username: ')
             temp.download_user_images(user2)
-        elif action == 3:
+        elif action == '3':
             os.system('cls' if os.name == 'nt' else 'clear')  # Clear terminal
             print('!!!This actions means that your account !likes! a couple of pictures with specific hashtags.!!!')
             print("Do you accept? Press 'y' and 'ENTER' for yes or 'n' and 'ENTER' for no.")
@@ -436,13 +459,13 @@ if __name__ == '__main__':
                 temp.get_followers_from_liking_hashtags(hashtag1)
                 temp.get_followers_from_liking_hashtags(hashtag2)
                 temp.get_followers_from_liking_hashtags(hashtag3)
-        elif action == 4:
+        elif action == '4':
             os.system('cls' if os.name == 'nt' else 'clear')  # Clear terminal
             print('Give the username of the user that you want to spam with likes.')
             user4 = input('Username: ')
-            print('How many photos do you want InstaBOTGram to like? (Write number and press \'ENTER\'')
+            print('How many photos do you want InstaBOTGram to like? (Write number and press \'ENTER\')')
             how_many = input('Number: ')
             temp.like_latest_posts(user4, how_many)
-        elif action == 5:
+        elif action == '5':
             temp.terminate()
             break
